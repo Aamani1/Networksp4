@@ -1,21 +1,91 @@
 CS 2200 Spring 2018
 Project 4
 
-Name:
-GT Username:
+Name: Amani Konduru
+GT Username:akonduru3
 
 Problem 1B
 ----------
+1 cpu
+./os-sim 1
+# of Context Switches: 99
+Total execution time: 71.4 s
+Total time spent in READY state: 413.5 s
 
+2 cpu
+./os-sim 2
+# of Context Switches: 101
+Total execution time: 36.4 s
+Total time spent in READY state: 109.5 s
+
+4 cpu
+./os-sim 4
+# of Context Switches: 180
+Total execution time: 33.3 s
+Total time spent in READY state: 2.7 s
+
+I got the above results after running the OS simulation with 1, 2, and 4 CPU's. From the above results, the total execution time for 1 and 2 CPU's is linear with a negative slope. When I compare the total execution time for 2 and 4 CPU's which are almost equivalent, and it is not linear with 1 CPU's total execution time. So as a result there is no linear relationship between number of CPU's and total execution time. As we increase the number of CPU's the total execution time gradually becomes equal since there will be more CPU's than the number of processes, but whereas in the case of having 1 or 2 CPU's the total execution time is higher since the processes are more compared to CPU's and the processes have to wait till a CPU finishes other processes in front of them.   
 /* Fix me */
 
 Problem 2B
 ----------
+800ms
+./os-sim 1 -r 8
+# of Context Switches: 136
+Total execution time: 67.6 s
+Total time spent in READY state: 324.9 s
 
-/* Fix me */
+600ms
+./os-sim 1 -r 6
+# of Context Switches: 161
+Total execution time: 67.6 s
+Total time spent in READY state: 314.0 s
+
+400ms
+./os-sim 1 -r 4
+# of Context Switches: 203
+Total execution time: 67.6 s
+Total time spent in READY state: 298.8 s
+
+200ms
+./os-sim 1 -r 2
+# of Context Switches: 362
+Total execution time: 67.6 s
+Total time spent in READY state: 283.0 s
+
+From the above results total waiting time decreases with shorter time-slices. In the case of big time-slice, causes small processes to wait for very long time when they could have finished much earlier. If the time-slice is low, then it would cause frequent context switches whenever a process gets preempted. The short time-slice causes many such context switches per unit time, taking the CPU away from doing useful work which leads to overhead.
+
 
 Problem 3B
 ----------
 
-/* Fix me */
+./os-sim 1 -s
+# of Context Switches: 142
+Total execution time: 67.7 s
+Total time spent in READY state: 160.5 s
+
+The SRTF algorithm sorts the queue by the process' anticipated CPU burst time, by picking the shortest burst time. By doing this way, we can optimize the average response time of processes. But the biggest problem is that we are trying to optimize the algorithm based on CPU burst time which we do not have. The best way is to guess and predict the next CPU burst time by assuming that it will be related to past CPU bursts for that process.
+
+Run each of the scheduling algorithms using one CPU and compare the total waiting times. Which one had the lowest? Why?
+
+FIFO
+./os-sim 1
+# of Context Switches: 99
+Total execution time: 67.6 s
+Total time spent in READY state: 389.9 s s
+
+ROUND-ROBIN
+./os-sim 1 -r 2
+# of Context Switches: 362
+Total execution time: 67.5 s
+Total time spent in READY state: 285.2 s
+
+SRTF
+./os-sim 1 -s
+# of Context Switches: 143
+Total execution time: 67.6 s
+Total time spent in READY state: 159.9 s
+
+From the results of the above algorithms, SRTF has the shortest wait time. This is because all the processes with big jobs will be pushed back to the queue and all the shortest job process will be executed first in SRTF algorithm.
+
 
