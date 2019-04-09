@@ -9,56 +9,63 @@ Problem 1B
 1 cpu
 ./os-sim 1
 # of Context Switches: 99
-Total execution time: 71.4 s
-Total time spent in READY state: 413.5 s
+Total execution time: 67.6 s
+Total time spent in READY state: 389.9 s
 
 2 cpu
 ./os-sim 2
-# of Context Switches: 101
-Total execution time: 36.4 s
-Total time spent in READY state: 109.5 s
+# of Context Switches: 107
+Total execution time: 35.8 s
+Total time spent in READY state: 92.3 s
 
 4 cpu
 ./os-sim 4
-# of Context Switches: 180
-Total execution time: 33.3 s
-Total time spent in READY state: 2.7 s
+# of Context Switches: 184
+Total execution time: 33.4 s
+Total time spent in READY state: 0.1 s
 
-I got the above results after running the OS simulation with 1, 2, and 4 CPU's. From the above results, the total execution time for 1 and 2 CPU's is linear with a negative slope. When I compare the total execution time for 2 and 4 CPU's which are almost equivalent, and it is not linear with 1 CPU's total execution time. So as a result there is no linear relationship between number of CPU's and total execution time. As we increase the number of CPU's the total execution time gradually becomes equal since there will be more CPU's than the number of processes, but whereas in the case of having 1 or 2 CPU's the total execution time is higher since the processes are more compared to CPU's and the processes have to wait till a CPU finishes other processes in front of them.   
+I got the above results after running the OS simulation with 1, 2, and 4 CPU's. 
+From the above results, we see that the number of CPU is not a linear relationship with the total execution time. As we increase the number of CPU's the total execution time gradually decreases since there will be more CPU's than the number of processes. It is because multiple CPUs can execute a number of processes at the same time. Their relationship are not linear. We see that the decreased execution time from 1 cpu to 2 cpu is 297.6s,  and from 2 to 4 cpu it is 92.2s. That's because if there are extra CPUs, some of them will be keep in idle, they do not execute any processes. This is the reason why from 2 to 4 cpu, the performance improvement is small.
+
+
 /* Fix me */
 
 Problem 2B
 ----------
 800ms
+1cpu
 ./os-sim 1 -r 8
-# of Context Switches: 136
+# of Context Switches: 135
 Total execution time: 67.6 s
-Total time spent in READY state: 324.9 s
+Total time spent in READY state: 328.2 s
 
 600ms
+1cpu
 ./os-sim 1 -r 6
-# of Context Switches: 161
-Total execution time: 67.6 s
-Total time spent in READY state: 314.0 s
+# of Context Switches: 157
+Total execution time: 70.0 s
+Total time spent in READY state: 341.6 s
 
 400ms
+1cpu
 ./os-sim 1 -r 4
 # of Context Switches: 203
 Total execution time: 67.6 s
 Total time spent in READY state: 298.8 s
 
 200ms
+1cpu
 ./os-sim 1 -r 2
 # of Context Switches: 362
 Total execution time: 67.6 s
-Total time spent in READY state: 283.0 s
+Total time spent in READY state: 291.0 s
 
 From the above results total waiting time decreases with shorter time-slices. In the case of big time-slice, causes small processes to wait for very long time when they could have finished much earlier. If the time-slice is low, then it would cause frequent context switches whenever a process gets preempted. The short time-slice causes many such context switches per unit time, taking the CPU away from doing useful work which leads to overhead.
 
 
 Problem 3B
 ----------
-
+1cpu
 ./os-sim 1 -s
 # of Context Switches: 142
 Total execution time: 67.7 s
@@ -69,18 +76,21 @@ The SRTF algorithm sorts the queue by the process' anticipated CPU burst time, b
 Run each of the scheduling algorithms using one CPU and compare the total waiting times. Which one had the lowest? Why?
 
 FIFO
+1cpu
 ./os-sim 1
 # of Context Switches: 99
 Total execution time: 67.6 s
 Total time spent in READY state: 389.9 s s
 
 ROUND-ROBIN
+1cpu
 ./os-sim 1 -r 2
 # of Context Switches: 362
 Total execution time: 67.5 s
 Total time spent in READY state: 285.2 s
 
 SRTF
+1cpu
 ./os-sim 1 -s
 # of Context Switches: 143
 Total execution time: 67.6 s
