@@ -3,7 +3,7 @@
  * student.c
  * Multithreaded OS Simulation for CS 2200
  *
- * This file cpu_countains the CPU scheduler for the simulation.
+ * This file contains the CPU scheduler for the simulation.
  */
 
 #include <assert.h>
@@ -41,23 +41,23 @@ static pcb_t **current;
 static pthread_mutex_t current_mutex;
 
 
-static int Time_Slice;
-static pthread_cond_t NotIdle;
-static pcb_t* head;
+static int time_slice;
+static pthread_cond_t no_idle;
+static pcb_t* queue_head;
 static int strf_true;
-static unsigned int count;
+static unsigned int cpu_count;
 static pthread_mutex_t rq_mutex;
 static int round_robin;
 static int prior;
 
 
 
-static void push(pcb_t* pcb)
+static void add_queue(pcb_t* pcb)
 {
 
     pthread_mutex_lock(&rq_mutex);
 
-    pcb_t *curr_pcb = head;
+    pcb_t *curr_pcb = queue_head;
 
     pcb->next = NULL;
 
@@ -69,24 +69,24 @@ static void push(pcb_t* pcb)
 
         curr_pcb->next = pcb;
     } else {
-        head = pcb;
+        queue_head = pcb;
     }
 
-    pthread_cond_broadcast(&NotIdle);
+    pthread_cond_broadcast(&no_idle);
     pthread_mutex_unlock(&rq_mutex);
 }
 
-static pcb_t* pop()
+static pcb_t* pop_queue()
 {
 
     pcb_t* pop_pcb;
     pthread_mutex_lock(&rq_mutex);
 
-    pop_pcb = head;
+    pop_pcb = queue_head;
 
     if (pop_pcb != NULL)
     {
-        head = pop_pcb->next;
+        queue_head = pop_pcb->next;
     }
 
     pthread_mutex_unlock(&rq_mutex);
@@ -98,15 +98,15 @@ static pcb_t* priority_queue() {
 
     pcb_t *curr;
     pcb_t *highest;
-    curr = head;
+    curr = queue_head;
     unsigned int level = 0;
 
-    if (head == NULL) {
+    if (queue_head == NULL) {
         return NULL;
     }
 
-    if(head->next == NULL){
-        head = NULL;
+    if(queue_head->next == NULL){
+        queue_head = NULL;
         return curr;
     } else {
         while (curr != NULL) {
@@ -116,9 +116,9 @@ static pcb_t* priority_queue() {
             }
             curr = curr->next;
         }
-        curr = head;
-        if (highest == head) {
-            head = head->next;
+        curr = queue_head;
+        if (highest == queue_head) {
+            queue_head = queue_head->next;
             return highest;
         }
 
@@ -150,13 +150,13 @@ void help()
  *
  *   3. Set the currently running process using the current array
  *
- *   4. Call cpu_countext_switch(), to tell the simulator which process to execute
- *      next on the CPU.  If no process is runnable, call cpu_countext_switch()
+ *   4. Call context_switch(), to tell the simulator which process to execute
+ *      next on the CPU.  If no process is runnable, call context_switch()
  *      with a pointer to NULL to select the idle process.
  *
  *   The current array (see above) is how you access the currently running process indexed by the cpu id.
  *   See above for full description.
- *   cpu_countext_switch() is prototyped in os-sim.h. Look there for more information
+ *   context_switch() is prototyped in os-sim.h. Look there for more information
  *   about it and its parameters.
  */
 static void schedule(unsigned int cpu_id)
@@ -169,7 +169,7 @@ static void schedule(unsigned int cpu_id)
     }
     else
     {
-        pcb_process = pop();
+        pcb_process = pop_queue();
     }
 
     if (pcb_process != NULL)
@@ -181,7 +181,7 @@ static void schedule(unsigned int cpu_id)
     current[cpu_id] = pcb_process;
 
     pthread_mutex_unlock(&current_mutex);
-    cpu_countext_switch(cpu_id, pcb_process, Time_Slice);
+    context_switch(cpu_id, pcb_process, time_slice);
 }
 
 
@@ -196,9 +196,9 @@ extern void idle(unsigned int cpu_id)
 {
 
     pthread_mutex_lock(&rq_mutex);
-    while (head == NULL)
+    while (queue_head == NULL)
     {
-        pthread_cond_wait(&NotIdle, &rq_mutex);
+        pthread_cond_wait(&no_idle, &rq_mutex);
     }
 
     pthread_mutex_unlock(&rq_mutex);
@@ -222,7 +222,7 @@ extern void preempt(unsigned int cpu_id)
     pcb_preempt->state = PROCESS_READY;
     pthread_mutex_unlock(&current_mutex);
 
-    push(pcb_preempt);
+    add_queue(pcb_preempt);
     schedule(cpu_id);
 }
 
@@ -285,33 +285,33 @@ extern void terminate(unsigned int cpu_id)
 extern void wake_up(pcb_t *process)
 {
 
-    unsigned int next = 10, rpcb = 0, cpu_count = 0;
+    int lowest = 10, run_pcb, cont = 0;
 
     process->state = PROCESS_READY;
-    push(process);
+    add_queue(process);
 
     if (prior == 1)
     { pthread_mutex_lock(&current_mutex);
 
-        for (unsigned int i = 0; i < count; i++)
+        for (int i = 0; i < cpu_count; i++)
         {
             if (current[i]==NULL)
             {
-                cpu_count = 1;
+                cont = 1;
                 break;
 
             }
-            if (current[i]->priority < next)
+            if (current[i]->priority < lowest)
             {
-              next = current[i]->priority;
-              rpcb = i;
+              lowest = current[i]->priority;
+              run_pcb = i;
             }
         }
         pthread_mutex_unlock(&current_mutex);
 
-        if (cpu_count !=1 && next<process->priority )
+        if (cont !=1 && lowest<process->priority )
         {
-           force_preempt(rpcb);
+           force_preempt(run_pcb);
         }
     }
 
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
     strf_true = 0;
     round_robin = 0;
     prior = 0;
-    Time_Slice = -1;
+    time_slice = -1;
 
     if (argc > 4|| argc < 2)
     {
@@ -341,9 +341,9 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    count = strtoul(argv[1], NULL, 0);
+    cpu_count = strtoul(argv[1], NULL, 0);
 
-    if (count == 0)
+    if (cpu_count == 0)
     {
         help();
         return -1;
@@ -363,21 +363,21 @@ int main(int argc, char *argv[])
 
         if (argc > 3)
         {
-            Time_Slice = strtoul(argv[3], NULL, 0);
+            time_slice = strtoul(argv[3], NULL, 0);
         }
 
     }
 
     /* Allocate the current[] array and its mutex */
-    current = malloc(sizeof(pcb_t*) * count);
+    current = malloc(sizeof(pcb_t*) * cpu_count);
     assert(current != NULL);
     pthread_mutex_init(&current_mutex, NULL);
 
     pthread_mutex_init(&rq_mutex, NULL);
-    head = NULL;
-    pthread_cond_init(&NotIdle, NULL);
+    queue_head = NULL;
+    pthread_cond_init(&no_idle, NULL);
 
-    start_simulator(count);
+    start_simulator(cpu_count);
 
     return 0;
 }
