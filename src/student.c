@@ -331,11 +331,7 @@ int main(int argc, char *argv[])
     prior = 0;
     time_slice = -1;
 
-    /*
-     * Check here if the number of arguments provided is valid.
-     * You will need to modify this when you add more arguments.
-     */
-    if (argc != 2)
+    if (argc > 4|| argc < 2)
     {
         fprintf(stderr, "CS 2200 Project 4 -- Multithreaded OS Simulator\n"
             "Usage: ./os-sim <# CPUs> [ -r <time slice> | -p ]\n"
@@ -345,7 +341,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    /* Parse the command line arguments */
     cpu_count = strtoul(argv[1], NULL, 0);
 
     if (cpu_count == 0)
@@ -360,14 +355,17 @@ int main(int argc, char *argv[])
         {
              prior = 1;
         }
+
         if (strcmp(argv[2],"-r") == 0)
         {
             round_robin = 1;
-        }=
+        }
+
         if (argc > 3)
         {
             time_slice = strtoul(argv[3], NULL, 0);
         }
+
     }
 
     /* Allocate the current[] array and its mutex */
