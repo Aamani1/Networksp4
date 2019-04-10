@@ -75,27 +75,24 @@ The SRTF algorithm sorts the queue by the process' anticipated CPU burst time, b
 
 Run each of the scheduling algorithms using one CPU and compare the total waiting times. Which one had the lowest? Why?
 
-FIFO
-1cpu
-./os-sim 1
+FIFO 1cpu
 # of Context Switches: 99
 Total execution time: 67.6 s
 Total time spent in READY state: 389.9 s s
 
-ROUND-ROBIN
-1cpu
-./os-sim 1 -r 2
+ROUND-ROBIN 1cpu
 # of Context Switches: 362
 Total execution time: 67.5 s
 Total time spent in READY state: 285.2 s
 
-SRTF
-1cpu
-./os-sim 1 -s
+Priority with 1cpu
 # of Context Switches: 143
 Total execution time: 67.6 s
 Total time spent in READY state: 159.9 s
 
-From the results of the above algorithms, SRTF has the shortest wait time. This is because all the processes with big jobs will be pushed back to the queue and all the shortest job process will be executed first in SRTF algorithm.
+From the results of the above algorithms, SRTF has the shortest wait time. This is because all the processes with big jobs will be pushed back to the queue and all the shortest job process will be executed first in SRTF algorithm. The long process could end up waiting an extremely long time it might even be forever. This is the reason SRTF algorithm is often impossible to implement precisely in a real operating system.
+
+Based on the results, the Priority Scheduler has the shortest execution time. Priority is not an intrinsic property it is highly flexible. It's assignment to jobs could be chosen commensurate with the needs of the scheduling environment. This could improve the performance. So, the Priority is simpler to implement. 
+
 
 
