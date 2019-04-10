@@ -41,7 +41,7 @@ static pcb_t **current;
 static pthread_mutex_t current_mutex;
 
 
-static int time_slice;
+static int TimeSlice;
 static pthread_cond_t no_idle;
 static pcb_t* head;
 static int strf_true;
@@ -52,14 +52,14 @@ static int prior;
 
 
 
-static void push(pcb_t* pcb)
+static void push(pcb_t* readyQueue)
 {
-
+    /* FIFO or ROUND-ROBIN */
     pthread_mutex_lock(&rq_mutex);
 
     pcb_t *curr_pcb = head;
 
-    pcb->next = NULL;
+    readyQueue->next = NULL;
 
     if (curr_pcb != NULL) {
 
@@ -67,9 +67,9 @@ static void push(pcb_t* pcb)
             curr_pcb = curr_pcb->next;
         }
 
-        curr_pcb->next = pcb;
+        curr_pcb->next = readyQueue;
     } else {
-        head = pcb;
+        head = readyQueue;
     }
 
     pthread_cond_broadcast(&no_idle);
@@ -79,18 +79,18 @@ static void push(pcb_t* pcb)
 static pcb_t* pop()
 {
 
-    pcb_t* pop_pcb;
+    pcb_t* popReadyQueue;
     pthread_mutex_lock(&rq_mutex);
 
-    pop_pcb = head;
+    popReadyQueue = head;
 
-    if (pop_pcb != NULL)
+    if (popReadyQueue != NULL)
     {
-        head = pop_pcb->next;
+        head = popReadyQueue->next;
     }
 
     pthread_mutex_unlock(&rq_mutex);
-    return pop_pcb;
+    return popReadyQueue;
 }
 
 
@@ -143,45 +143,38 @@ void help()
 /*
  * schedule() is your CPU scheduler.  It should perform the following tasks:
  *
- *   1. Select and remove a runnable process from your ready queue which
- *   you will have to implement with a linked list or something of the sort.
+ *   1. Select and remove a runnable process from your ready queue which 
+ *  you will have to implement with a linked list or something of the sort.
  *
  *   2. Set the process state to RUNNING
  *
- *   3. Set the currently running process using the current array
- *
- *   4. Call countext_switch(), to tell the simulator which process to execute
- *      next on the CPU.  If no process is runnable, call countext_switch()
+ *   3. Call context_switch(), to tell the simulator which process to execute
+ *      next on the CPU.  If no process is runnable, call context_switch()
  *      with a pointer to NULL to select the idle process.
- *
- *   The current array (see above) is how you access the currently running process indexed by the cpu id.
- *   See above for full description.
- *   countext_switch() is prototyped in os-sim.h. Look there for more information
- *   about it and its parameters.
+ *  The current array (see above) is how you access the currently running process indexed by the cpu id. 
+ *  See above for full description.
+ *  context_switch() is prototyped in os-sim.h. Look there for more information 
+ *  about it and its parameters.
  */
 static void schedule(unsigned int cpu_id)
 {
-    pcb_t *pcb_process;
+    pcb_t *removeNode;
 
-    if (prior == 1)
-    {
-        pcb_process = priority_queue();
-    }
-    else
-    {
-        pcb_process = pop();
+    if (prior == 1) {
+        removeNode = priority_queue();
+    } else {
+        removeNode = pop();
     }
 
-    if (pcb_process != NULL)
-    {
-        pcb_process->state = PROCESS_RUNNING;
+    if (removeNode != NULL) {
+        removeNode->state = PROCESS_RUNNING;
     }
 
     pthread_mutex_lock(&current_mutex);
-    current[cpu_id] = pcb_process;
+    current[cpu_id] = removeNode;
 
     pthread_mutex_unlock(&current_mutex);
-    context_switch(cpu_id, pcb_process, time_slice);
+    context_switch(cpu_id, removeNode, TimeSlice);
 }
 
 
@@ -238,10 +231,10 @@ extern void yield(unsigned int cpu_id)
 {
 
     pthread_mutex_lock(&current_mutex);
-    pcb_t *pcb_yield;
-    pcb_yield = current[cpu_id];
+    pcb_t *yield;
+    yield = current[cpu_id];
 
-    pcb_yield->state = PROCESS_WAITING;
+    yield->state = PROCESS_WAITING;
     pthread_mutex_unlock(&current_mutex);
     schedule(cpu_id);
 }
@@ -255,10 +248,10 @@ extern void yield(unsigned int cpu_id)
 extern void terminate(unsigned int cpu_id)
 {
     pthread_mutex_lock(&current_mutex);
-    pcb_t* pcb_terminate;
-    pcb_terminate = current[cpu_id];
+    pcb_t* terminate;
+    terminate = current[cpu_id];
 
-    pcb_terminate->state = PROCESS_TERMINATED;
+    terminate->state = PROCESS_TERMINATED;
     pthread_mutex_unlock(&current_mutex);
     schedule(cpu_id);
 }
@@ -270,22 +263,20 @@ extern void terminate(unsigned int cpu_id)
  *
  *   1. Mark the process as READY, and insert it into the ready queue.
  *
- *   2. If the scheduling algorithm is Priority, wake_up() may need
- *      to preempt the CPU with the best priority to allow it to
+ *   2. If the scheduling algorithm is SRTF, wake_up() may need
+ *      to preempt the CPU with the highest remaining time left to allow it to
  *      execute the process which just woke up.  However, if any CPU is
  *      currently running idle, or all of the CPUs are running processes
- *      with higher priority than the one which just woke up, wake_up()
+ *      with a lower remaining time left than the one which just woke up, wake_up()
  *      should not preempt any CPUs.
- *  To preempt a process, use force_preempt(). Look in os-sim.h for
+ *  To preempt a process, use force_preempt(). Look in os-sim.h for 
  *  its prototype and the parameters it takes in.
- *
- *  NOTE: A high priority corresponds to a low number.
- *  i.e. 0 is the highest possible priority.
  */
+
 extern void wake_up(pcb_t *process)
 {
 
-    unsigned int best = 10, rpcb = 0, cpu_count = 0;
+    unsigned int best = 10, rpcb = 0, count = 0;
 
     process->state = PROCESS_READY;
     push(process);
@@ -293,11 +284,11 @@ extern void wake_up(pcb_t *process)
     if (prior == 1)
     { pthread_mutex_lock(&current_mutex);
 
-        for (unsigned int i = 0; i < cpu_count; i++)
+        for (unsigned int i = 0; i < count; i++)
         {
             if (current[i]==NULL)
             {
-                cpu_count = 1;
+                count = 1;
                 break;
 
             }
@@ -309,7 +300,7 @@ extern void wake_up(pcb_t *process)
         }
         pthread_mutex_unlock(&current_mutex);
 
-        if (cpu_count !=1 && best<process->priority )
+        if (count !=1 && best<process->priority )
         {
            force_preempt(rpcb);
         }
@@ -329,9 +320,9 @@ int main(int argc, char *argv[])
     strf_true = 0;
     round_robin = 0;
     prior = 0;
-    time_slice = -1;
+    TimeSlice = -1;
 
-    if (argc > 4|| argc < 2)
+    if (argc != 2)
     {
         fprintf(stderr, "CS 2200 Project 4 -- Multithreaded OS Simulator\n"
             "Usage: ./os-sim <# CPUs> [ -r <time slice> | -p ]\n"
@@ -363,7 +354,7 @@ int main(int argc, char *argv[])
 
         if (argc > 3)
         {
-            time_slice = strtoul(argv[3], NULL, 0);
+            TimeSlice = strtoul(argv[3], NULL, 0);
         }
 
     }
