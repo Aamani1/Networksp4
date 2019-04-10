@@ -285,7 +285,7 @@ extern void terminate(unsigned int cpu_id)
 extern void wake_up(pcb_t *process)
 {
 
-    unsigned int next = 10, rpcb, cpu_count = 0;
+    unsigned int next = 10, rpcb = 0, cpu_count = 0;
 
     process->state = PROCESS_READY;
     push(process);
