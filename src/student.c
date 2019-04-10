@@ -150,13 +150,13 @@ void help()
  *
  *   3. Set the currently running process using the current array
  *
- *   4. Call cpu_countext_switch(), to tell the simulator which process to execute
- *      next on the CPU.  If no process is runnable, call cpu_countext_switch()
+ *   4. Call countext_switch(), to tell the simulator which process to execute
+ *      next on the CPU.  If no process is runnable, call countext_switch()
  *      with a pointer to NULL to select the idle process.
  *
  *   The current array (see above) is how you access the currently running process indexed by the cpu id.
  *   See above for full description.
- *   cpu_countext_switch() is prototyped in os-sim.h. Look there for more information
+ *   countext_switch() is prototyped in os-sim.h. Look there for more information
  *   about it and its parameters.
  */
 static void schedule(unsigned int cpu_id)
@@ -181,7 +181,7 @@ static void schedule(unsigned int cpu_id)
     current[cpu_id] = pcb_process;
 
     pthread_mutex_unlock(&current_mutex);
-    cpu_countext_switch(cpu_id, pcb_process, time_slice);
+    countext_switch(cpu_id, pcb_process, time_slice);
 }
 
 
