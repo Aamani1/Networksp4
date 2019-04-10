@@ -41,11 +41,11 @@ static pcb_t **current;
 static pthread_mutex_t current_mutex;
 
 
-static int time_slice;
-static pthread_cond_t no_idle;
-static pcb_t* queue_head;
+static int Time_Slice;
+static pthread_cond_t NotIdle;
+static pcb_t* head;
 static int strf_true;
-static unsigned int cpu_count;
+static unsigned int count;
 static pthread_mutex_t rq_mutex;
 static int round_robin;
 static int prior;
@@ -57,7 +57,7 @@ static void add_queue(pcb_t* pcb)
 
     pthread_mutex_lock(&rq_mutex);
 
-    pcb_t *curr_pcb = queue_head;
+    pcb_t *curr_pcb = head;
 
     pcb->next = NULL;
 
@@ -69,10 +69,10 @@ static void add_queue(pcb_t* pcb)
 
         curr_pcb->next = pcb;
     } else {
-        queue_head = pcb;
+        head = pcb;
     }
 
-    pthread_cond_broadcast(&no_idle);
+    pthread_cond_broadcast(&NotIdle);
     pthread_mutex_unlock(&rq_mutex);
 }
 
@@ -82,11 +82,11 @@ static pcb_t* pop_queue()
     pcb_t* pop_pcb;
     pthread_mutex_lock(&rq_mutex);
 
-    pop_pcb = queue_head;
+    pop_pcb = head;
 
     if (pop_pcb != NULL)
     {
-        queue_head = pop_pcb->next;
+        head = pop_pcb->next;
     }
 
     pthread_mutex_unlock(&rq_mutex);
@@ -98,15 +98,15 @@ static pcb_t* priority_queue() {
 
     pcb_t *curr;
     pcb_t *highest;
-    curr = queue_head;
+    curr = head;
     unsigned int level = 0;
 
-    if (queue_head == NULL) {
+    if (head == NULL) {
         return NULL;
     }
 
-    if(queue_head->next == NULL){
-        queue_head = NULL;
+    if(head->next == NULL){
+        head = NULL;
         return curr;
     } else {
         while (curr != NULL) {
@@ -116,9 +116,9 @@ static pcb_t* priority_queue() {
             }
             curr = curr->next;
         }
-        curr = queue_head;
-        if (highest == queue_head) {
-            queue_head = queue_head->next;
+        curr = head;
+        if (highest == head) {
+            head = head->next;
             return highest;
         }
 
@@ -181,7 +181,7 @@ static void schedule(unsigned int cpu_id)
     current[cpu_id] = pcb_process;
 
     pthread_mutex_unlock(&current_mutex);
-    context_switch(cpu_id, pcb_process, time_slice);
+    context_switch(cpu_id, pcb_process, Time_Slice);
 }
 
 
@@ -196,9 +196,9 @@ extern void idle(unsigned int cpu_id)
 {
 
     pthread_mutex_lock(&rq_mutex);
-    while (queue_head == NULL)
+    while (head == NULL)
     {
-        pthread_cond_wait(&no_idle, &rq_mutex);
+        pthread_cond_wait(&NotIdle, &rq_mutex);
     }
 
     pthread_mutex_unlock(&rq_mutex);
@@ -293,7 +293,7 @@ extern void wake_up(pcb_t *process)
     if (prior == 1)
     { pthread_mutex_lock(&current_mutex);
 
-        for (int i = 0; i < cpu_count; i++)
+        for (unsigned int i = 0; i < count; i++)
         {
             if (current[i]==NULL)
             {
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
     strf_true = 0;
     round_robin = 0;
     prior = 0;
-    time_slice = -1;
+    Time_Slice = -1;
 
     if (argc > 4|| argc < 2)
     {
@@ -341,9 +341,9 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    cpu_count = strtoul(argv[1], NULL, 0);
+    count = strtoul(argv[1], NULL, 0);
 
-    if (cpu_count == 0)
+    if (count == 0)
     {
         help();
         return -1;
@@ -363,21 +363,21 @@ int main(int argc, char *argv[])
 
         if (argc > 3)
         {
-            time_slice = strtoul(argv[3], NULL, 0);
+            Time_Slice = strtoul(argv[3], NULL, 0);
         }
 
     }
 
     /* Allocate the current[] array and its mutex */
-    current = malloc(sizeof(pcb_t*) * cpu_count);
+    current = malloc(sizeof(pcb_t*) * count);
     assert(current != NULL);
     pthread_mutex_init(&current_mutex, NULL);
 
     pthread_mutex_init(&rq_mutex, NULL);
-    queue_head = NULL;
-    pthread_cond_init(&no_idle, NULL);
+    head = NULL;
+    pthread_cond_init(&NotIdle, NULL);
 
-    start_simulator(cpu_count);
+    start_simulator(count);
 
     return 0;
 }
