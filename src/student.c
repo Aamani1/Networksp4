@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
     prior = 0;
     TimeSlice = -1;
 
-    if (argc != 2)
+    if (argc > 4|| argc < 2)
     {
         fprintf(stderr, "CS 2200 Project 4 -- Multithreaded OS Simulator\n"
             "Usage: ./os-sim <# CPUs> [ -r <time slice> | -p ]\n"
