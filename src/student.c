@@ -181,7 +181,7 @@ static void schedule(unsigned int cpu_id)
     current[cpu_id] = pcb_process;
 
     pthread_mutex_unlock(&current_mutex);
-    countext_switch(cpu_id, pcb_process, Time_Slice);
+    cpu_countext_switch(cpu_id, pcb_process, Time_Slice);
 }
 
 
