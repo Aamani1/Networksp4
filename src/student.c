@@ -3,7 +3,7 @@
  * student.c
  * Multithreaded OS Simulation for CS 2200
  *
- * This file contains the CPU scheduler for the simulation.
+ * This file cpu_countains the CPU scheduler for the simulation.
  */
 
 #include <assert.h>
@@ -52,7 +52,7 @@ static int prior;
 
 
 
-static void add_queue(pcb_t* pcb)
+static void push(pcb_t* pcb)
 {
 
     pthread_mutex_lock(&rq_mutex);
@@ -76,7 +76,7 @@ static void add_queue(pcb_t* pcb)
     pthread_mutex_unlock(&rq_mutex);
 }
 
-static pcb_t* pop_queue()
+static pcb_t* pop()
 {
 
     pcb_t* pop_pcb;
@@ -150,13 +150,13 @@ void help()
  *
  *   3. Set the currently running process using the current array
  *
- *   4. Call context_switch(), to tell the simulator which process to execute
- *      next on the CPU.  If no process is runnable, call context_switch()
+ *   4. Call cpu_countext_switch(), to tell the simulator which process to execute
+ *      next on the CPU.  If no process is runnable, call cpu_countext_switch()
  *      with a pointer to NULL to select the idle process.
  *
  *   The current array (see above) is how you access the currently running process indexed by the cpu id.
  *   See above for full description.
- *   context_switch() is prototyped in os-sim.h. Look there for more information
+ *   cpu_countext_switch() is prototyped in os-sim.h. Look there for more information
  *   about it and its parameters.
  */
 static void schedule(unsigned int cpu_id)
@@ -169,7 +169,7 @@ static void schedule(unsigned int cpu_id)
     }
     else
     {
-        pcb_process = pop_queue();
+        pcb_process = pop();
     }
 
     if (pcb_process != NULL)
@@ -181,7 +181,7 @@ static void schedule(unsigned int cpu_id)
     current[cpu_id] = pcb_process;
 
     pthread_mutex_unlock(&current_mutex);
-    context_switch(cpu_id, pcb_process, Time_Slice);
+    cpu_countext_switch(cpu_id, pcb_process, Time_Slice);
 }
 
 
@@ -222,7 +222,7 @@ extern void preempt(unsigned int cpu_id)
     pcb_preempt->state = PROCESS_READY;
     pthread_mutex_unlock(&current_mutex);
 
-    add_queue(pcb_preempt);
+    push(pcb_preempt);
     schedule(cpu_id);
 }
 
@@ -285,10 +285,10 @@ extern void terminate(unsigned int cpu_id)
 extern void wake_up(pcb_t *process)
 {
 
-    int lowest = 10, run_pcb, cont = 0;
+    unsigned int next = 10, rpcb, cpu_count = 0;
 
     process->state = PROCESS_READY;
-    add_queue(process);
+    push(process);
 
     if (prior == 1)
     { pthread_mutex_lock(&current_mutex);
@@ -297,21 +297,21 @@ extern void wake_up(pcb_t *process)
         {
             if (current[i]==NULL)
             {
-                cont = 1;
+                cpu_count = 1;
                 break;
 
             }
-            if (current[i]->priority < lowest)
+            if (current[i]->priority < next)
             {
-              lowest = current[i]->priority;
-              run_pcb = i;
+              next = current[i]->priority;
+              rpcb = i;
             }
         }
         pthread_mutex_unlock(&current_mutex);
 
-        if (cont !=1 && lowest<process->priority )
+        if (cpu_count !=1 && next<process->priority )
         {
-           force_preempt(run_pcb);
+           force_preempt(rpcb);
         }
     }
 
